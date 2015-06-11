@@ -1,0 +1,147 @@
+---
+title: "Reproducible Research: Peer Assessment 1"
+output: 
+  html_document:
+    keep_md: true
+---
+
+
+##Loading and preprocessing the data
+```{r}
+    data <- read.csv("activity.csv")
+    data0 <- data
+    data <- data[complete.cases(data), ]
+```
+
+
+##The mean total number of steps taken per day
+```{r}
+    days <- 0:60
+    total <- c()
+    for (i in days) {
+        d <- as.Date("2012-10-01") + i
+        d <- as.character(d)
+        cond <- as.character(data$date) == d
+        x <- data[cond, ]
+        if (!nrow(x) == 0) {
+            total <- c(total, sum(x$steps) * 1.0)
+        }
+    }
+    mean1 <- mean(total)
+    median1 <- median(total)
+
+    hist(total)
+```
+```{r, echo=FALSE}
+    cat("The mean total number of steps taken per day is")
+    print(mean1)
+    cat("The median total number of steps taken per day is")
+    print(median1)
+```
+##The average daily activity pattern
+```{r}
+library(ggplot2)
+
+    n <- 24 * 60 / 5 -1
+    x <- 0:n
+    for (i in days) {
+        d <- as.Date("2012-10-01") + i
+        d <- as.character(d)
+        cond <- as.character(data0$date) == d
+        xxx <- data0$steps[cond]
+        if (d == "2012-10-01")  {
+            yyy <- xxx
+        }
+        else  {
+            yyy <- cbind(yyy, xxx)
+        }
+    }
+    step <- sapply(yyy, mean, na.rm=TRUE)
+    x <- x * 5
+    df <- data.frame(interval=x, Steps=step)
+    p <- ggplot(data=df, aes(x=interval, y=Steps))
+    p <- p + geom_line()
+```
+Graph of average steps in intervals
+```{r}
+    print(p)
+    m <- max(step, na.rm=TRUE)
+    cond <- df$Steps == m
+    mm <- df$interval[cond]
+    mm <-mm[!is.na(mm)]
+```
+interval at wich maximum average steps are taken
+```{r, echo=FALSE}
+    print(mm)
+```
+
+##Imputing missing values
+```{r}
+    nna <- 0
+    for (i in days)  {
+        d <- as.Date("2012-10-01") + i
+        d <- as.character(d)
+        cond <- as.character(data0$date) == d
+        xxx <- data0$steps[cond]
+        cond <- is.na(xxx)
+        zzz <- xxx[cond]
+        nna <- nna + length(zzz)
+    }
+```
+Total number of missing values is
+```{r, echo=FALSE}
+    print(nna)
+```
+```{r}
+    n <- 24 * 60 / 5
+    x <- 1:n
+    step1 <- c()
+    sub <- mean1 / 24 / 12.0 
+    for (i in days)  {
+        d <- as.Date("2012-10-01") + i
+        d <- as.character(d)
+        cond <- as.character(data0$date) == d
+        xxx <- data0$steps[cond]
+        for (j in x)  {
+            if (is.na(xxx[j]))  {
+                xxx[j] <- sub 
+            }
+        }
+        step1 <- c(step1, xxx)
+    }
+    date <- data0$date
+    interval <- data0$interval
+    data1 <- data.frame(date=date, steps=step1, interval=interval)
+    total1 <- c()
+    for (i in days)  {
+        d <- as.Date("2012-10-01") + i
+        d <- as.character(d)
+        cond <- as.character(data1$date) == d
+        xxx <- data1$steps[cond]
+        total1 <- c(total1, sum(xxx))
+    }
+    hist(total)
+    mean2 <- mean(total1)
+    median2 <- median(total1)
+```
+```{r, echo=FALSE}
+    print("")
+```
+Mean of total steps per day with missing value filled
+```{r, echo=FALSE}
+    print(mean2)
+```
+Median of total steps per day with missing value filled
+```{r, echo=FALSE}
+    print(median2)
+```
+
+## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+    data1$day <- weekdays(as.Date(as.character(data1$date)))
+    cond <- data1$day == "土曜日" | data1$day == "日曜日"
+    xxx <- data1$steps[cond]
+    yyy <- data1$steps[!cond]
+    t.test(xxx, yyy)    
+```
+Activity is significantly higher in weekdays than weekends.
